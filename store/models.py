@@ -66,3 +66,4 @@ class Address(models.Model):
     city = models.CharField(max_length=255)
     # this is a child entity, and you need the parent in ForeignKey()
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+

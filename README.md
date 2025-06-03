@@ -7,6 +7,7 @@
 - ✅ Mapping URLs to Views
 - ✅ Debugging within Django
 - ✅ Building Data Models
+- ✅ Django models and database migrations
 
 ---
 
@@ -121,14 +122,89 @@ INSTALLED_APPS = [
 - Try `pipenv --venv` to check if virtual environment exists
 
 ---
+# Django Database Relationships & ORM Guide
+
+## Defining Relationships
+
+### One-to-One Relationship
+Define within the class:
+```python
+customer = models.OneToOneField(
+    [parent_entity], 
+    on_delete=[set_property]
+)
+```
+
+### One-to-Many Relationship
+Define within the child entity class:
+```python
+customer = models.ForeignKey(
+    [parent_entity], 
+    on_delete=[set_property]
+)
+```
+
+## Database Migrations
+
+### Setting Up Migrations
+Create migration files:
+```bash
+python manage.py makemigrations
+```
+
+### Running Migrations
+Apply migrations to database:
+```bash
+python manage.py migrate
+```
+
+### Undoing Migrations
+Revert to a specific migration:
+```bash
+python manage.py migrate [app_name] [migration_number]
+```
+*Note: This reverts up to (but not including) the migration you want to undo*
+
+```bash
+# View commit history
+git log --oneline
+
+# Reset to previous commit
+git reset --hard HEAD~1
+```
+
+## Database Connection
+
+### Connecting with DataGrip (MySQL)
+1. Create new file in DataGrip
+2. Add database using Query Console
+3. Install MySQL client:
+   ```bash
+   pipenv install mysqlclient
+   ```
+
+## Django ORM Overview
+
+### What is ORM?
+Data is stored in rows and tables. To retrieve that data, you traditionally had to:
+1. Create a SQL query
+2. Send it to the database
+3. Read the result
+4. Map it into an object
+
+**ORMs solve this problem** by providing an abstraction layer.
+
+### How Django ORM Works
+- Every model has a attribute called objects, which returns a manager, which is an interface to the db
+The manager has a bunch of methods for queuing and updating data. Most methods return a query set
+
 
 ## 📝 Next Steps
 
-- [ ] Learn about Django models and database migrations
 - [ ] Django ORM
 - [ ] Admin Site
 
----
 
 
-*Happy coding! 🎉*
+
+

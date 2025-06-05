@@ -8,6 +8,8 @@
 - ✅ Debugging within Django
 - ✅ Building Data Models
 - ✅ Django models and database migrations
+- ✅ Django ORM
+- ✅ Admin Site
 
 ---
 
@@ -198,13 +200,296 @@ Data is stored in rows and tables. To retrieve that data, you traditionally had 
 - Every model has a attribute called objects, which returns a manager, which is an interface to the db
 The manager has a bunch of methods for queuing and updating data. Most methods return a query set
 
+### Getting Single Objects
+```python
+# Get object by primary key
+[model].objects.get(pk=1)
+```
 
-## 📝 Next Steps
+### To find more
+There are a lot of ways to filter queries
+https://docs.djangoproject.com/en/5.2/ref/models/querysets/
+Google Django Query Set API to find documentation
 
-- [ ] Django ORM
-- [ ] Admin Site
 
+### Basic Filtering
 
+```python
+# Filter records
+[model].objects.filter(pk=0)
+
+# Check if records exist (returns boolean)
+[model].objects.filter(pk=0).exists()
+```
+
+## Filtering
+
+### String Filtering
+
+Excercise
+How do you filter customer emails that contain .com?
+
+```python
+# Filter emails containing '.com' (case insensitive)
+customers = Customer.objects.filter(email__icontains='.com')
+```
+
+### AND Conditions
+```python
+# Multiple conditions (AND)
+customers = Customer.objects.filter(
+    email__icontains='.com', 
+    email__icontains='somethingElse'
+)
+```
+
+### OR Conditions
+```python
+# Import Q objects for OR conditions
+from django.db.models import Q
+
+# OR condition example
+customers = Customer.objects.filter(
+    Q(inventory__lt=10) | Q(unit_price__lt=20)
+)
+```
+
+### Useful Resources
+- [Django QuerySet API Documentation](https://docs.djangoproject.com/en/5.2/ref/models/querysets/)
+
+## Sorting and Limiting
+
+### Sorting
+```python
+# Order by column name
+queryset.order_by('column_name')
+```
+
+### Limiting Results
+```python
+# Get first 5 objects using Python slicing
+queryset.all()[:5]
+```
+
+### Selecting Specific Columns
+```python
+# Return only specific columns
+objects.values('title', 'name')
+```
+
+## Aggregation and Annotation
+
+### Aggregation Functions
+```python
+# Count total products
+Product.objects.aggregate(Count('id'))
+```
+
+### Annotation
+The `annotate()` method adds additional attributes to objects when querying them.
+
+### Database Functions
+```python
+# Create computed field using Func()
+.annotate(
+    full_name=Func(
+        F('first_name'), 
+        Value(' '), 
+        F('last_name')
+    )
+)
+```
+
+**Resource:** Search "Django database functions" for more available functions.
+
+## Database Operations
+
+### Inserting Data
+```python
+# Create new object
+collection = Collection()
+# Set attributes...
+collection.save()
+```
+
+### Updating Objects
+```python
+# Method 1: Get and save (prevents data loss)
+collection = Collection.objects.get(pk=1)
+# Update attributes...
+collection.save()
+
+# Method 2: Bulk update
+Collection.objects.filter(pk=11).update(column_name=new_value)
+```
+
+### Deleting Objects
+```python
+# Select then delete
+object = Model.objects.get(pk=1)
+object.delete()
+```
+
+## Transactions
+
+Transactions maintain data integrity. If an exception occurs, all queries are rolled back.
+
+```python
+from django.db import transaction
+
+@transaction.atomic
+def example(request):
+    # Your code here...
+```
+
+## Raw SQL
+
+```python
+# Execute raw SQL queries
+queryset = Product.objects.raw('SELECT * FROM store_product')
+```
+
+## Django Admin
+
+### Creating Superuser
+```bash
+python manage.py createsuperuser
+```
+Enter username, email address, and password when prompted.
+
+### Registering Models
+
+#### Basic Registration
+```python
+# In admin.py
+admin.site.register(models.ModelName)
+```
+
+#### Advanced Registration
+```python
+@admin.register(models.Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ['title', 'unit_price']
+```
+
+**Resource:** [Django Admin Documentation](https://docs.djangoproject.com/en/5.2/ref/contrib/admin/)
+
+## Admin Customization
+
+### Computed Columns
+```python
+@admin.display(ordering='inventory')
+def inventory_status(self, product):
+    if product.inventory < 10:
+        return 'Low'
+    else:
+        return 'OK'
+
+# Add to list_display
+list_display = ['title', 'unit_price', 'inventory_status']
+```
+
+### Loading Related Objects
+```python
+# Prevent extra queries with eager loading
+list_select_related = ['relation_name']
+```
+
+### Custom QuerySet
+```python
+def get_queryset(self, request):
+    return super().get_queryset(request)  # Override this
+```
+
+### Adding Links to Other Pages
+```python
+from django.urls import reverse
+from django.utils.html import format_html
+from django.utils.http import urlencode
+
+def custom_link(self, collection):
+    url = (reverse('admin:store_product_changelist') +
+           '?' +
+           urlencode({
+               'collection__id': str(collection.id)
+           }))
+    return format_html('<a href="{}">{}</a>', url, collection.products_count)
+```
+
+### Search Functionality
+```python
+class ProductAdmin(admin.ModelAdmin):
+    search_fields = ['column_name__istartswith']  # 'i' = case insensitive
+```
+
+### Filtering
+```python
+class ProductAdmin(admin.ModelAdmin):
+    list_filter = ['column_name']
+```
+
+## Custom Actions
+
+```python
+class ProductAdmin(admin.ModelAdmin):
+    actions = ['custom_action_name']
+
+    def custom_action_name(self, request, queryset):
+        updated_count = queryset.update(inventory=0)
+        
+        # Send message to user
+        self.message_user(
+            request, 
+            f'{updated_count} products were updated.'
+        )
+```
+
+## Form Customization
+
+### Field Customization
+```python
+class ProductAdmin(admin.ModelAdmin):
+    # Include specific fields
+    fields = ['field1', 'field2']
+    
+    # Exclude specific fields
+    exclude = ['field3', 'field4']
+    
+    # Add autocomplete
+    autocomplete_fields = ['foreign_key_field']
+```
+
+**Resource:** Search "Django ModelAdmin - ModelAdmin options" for more customization options.
+
+## Data Validation
+
+For data validation, import validators from Django:
+
+```python
+from django.core.validators import *
+```
+
+**Resource:** Search "Django core validators" for available validation options.
+
+## Advanced Topics to Review
+
+- `select_related` & `prefetch_related` - For optimizing database queries
+- Custom Managers - For reusable query logic
+
+## Quick Reference
+
+| Operation | Syntax |
+|-----------|---------|
+| Get single object | `Model.objects.get(pk=1)` |
+| Filter records | `Model.objects.filter(field=value)` |
+| Check existence | `Model.objects.filter().exists()` |
+| Case insensitive search | `field__icontains='value'` |
+| OR conditions | `Q(condition1) \| Q(condition2)` |
+| Ordering | `.order_by('field')` |
+| Limiting | `.all()[:5]` |
+| Count | `.aggregate(Count('field'))` |
+
+---
 
 
 
